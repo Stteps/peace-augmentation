@@ -12,32 +12,18 @@ from .easy_data_augmentation import (
     synonym_replacement,
 )
 from .replace_named_entities import find_closest_embeddings, get_word_vector
-from .utils import (  # add_exp_to_sent,; vectors_list,
-    fasttext_doc_emb,
+from .utils import (
     get_synonyms,
     add_exp_to_sent,
     replace_exp_to_sent,
     scalarity_list,
     special_tokens,
     speculative_list,
-    tagger_ner,
-    tagger_pos,
-    vectors_list
+    get_fasttext_embeddings,
+    get_ner_tagger,
+    get_pos_tagger,
+    get_vectors_list
 )
-
-
-def check_and_download_nltk_data():
-    required_resources = ['punkt', 'wordnet', 'stopwords', 'averaged_perceptron_tagger']
-
-    for resource in required_resources:
-        try:
-            nltk.data.find(f'tokenizers/{resource}')
-        except LookupError:
-            nltk.download(resource)
-
-
-check_and_download_nltk_data()
-
 
 class Augmentation:
     def __init__(
@@ -226,6 +212,7 @@ class Augmentation:
         sent_ = Sentence(sent)
 
         # Tag sentence with POS.
+        tagger_pos = get_pos_tagger()
         tagger_pos.predict(sent_)
 
         # Use speculative adverbs
@@ -308,6 +295,7 @@ class Augmentation:
         sent_ = Sentence(sent)
 
         # Tag sentence with POS.
+        tagger_pos = get_pos_tagger()
         tagger_pos.predict(sent_)
 
         # Filter all adverbs in `sent`
@@ -353,6 +341,7 @@ class Augmentation:
         sent_ = Sentence(sent)
 
         # Tag sentence with NEs.
+        tagger_ner = get_ner_tagger()
         tagger_ner.predict(sent_)
 
         adv_examples = []
@@ -368,9 +357,11 @@ class Augmentation:
                 ner_end = label.data_point.end_position
 
                 # Find FastText word embedding of the entity.
+                _, fasttext_doc_emb = get_fasttext_embeddings()
                 w_vector = get_word_vector(ner_text, doc_emb=fasttext_doc_emb)
 
                 # Get the most similar words to the entity in `vector_list`.
+                vectors_list = get_vectors_list()
                 candidates = find_closest_embeddings(vectors_list[ner_type], w_vector)  # noqa
 
                 # Avoid replacement of the entity for itself.

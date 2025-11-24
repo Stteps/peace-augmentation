@@ -2,6 +2,7 @@ import json
 import os
 from typing import List
 
+import nltk
 from flair.embeddings import DocumentPoolEmbeddings, WordEmbeddings
 from flair.models import SequenceTagger
 from flair.data import Sentence
@@ -164,19 +165,73 @@ with open(os.path.join(words_list_dir, "special_tokens.json"), "rb") as f:
 with open(os.path.join(words_list_dir, "entities_list.json"), "rb") as f:
     entities_list = json.load(f)
 
-# Flair taggers and embeddings.
-tagger_pos = SequenceTagger.load("pos")
-tagger_ner = SequenceTagger.load("ner")
-fasttext_emb = WordEmbeddings("en")
-fasttext_doc_emb = DocumentPoolEmbeddings([fasttext_emb])
 
-vectors_list = {}
-for key in entities_list.keys():
-    vectors_list[key] = {}
-    for word in entities_list[key]:
-        word_ = Sentence(word)
-        fasttext_doc_emb.embed(word_)
-        vectors_list[key][word] = word_.embedding.to("cpu")
+_tagger_pos = None
+_tagger_ner = None
+_fasttext_emb = None
+_fasttext_doc_emb = None
+_vectors_list_cache = None
+
+
+def ensure_nltk():
+    """Ensure required NLTK resources are available."""
+    required = [
+        "punkt",
+        "wordnet",
+        "stopwords",
+        "averaged_perceptron_tagger",
+    ]
+
+    for pkg in required:
+        try:
+            nltk.data.find(f"tokenizers/{pkg}") if pkg == "punkt" else nltk.data.find(
+                f"corpora/{pkg}"
+            )
+        except LookupError:
+            nltk.download(pkg)
+
+
+def get_pos_tagger():
+    global _tagger_pos
+    if _tagger_pos is None:
+        ensure_nltk()
+        _tagger_pos = SequenceTagger.load("pos")
+    return _tagger_pos
+
+
+def get_ner_tagger():
+    global _tagger_ner
+    if _tagger_ner is None:
+        ensure_nltk()
+        _tagger_ner = SequenceTagger.load("ner")
+    return _tagger_ner
+
+
+def get_fasttext_embeddings():
+    global _fasttext_emb, _fasttext_doc_emb
+    if _fasttext_emb is None:
+        _fasttext_emb = WordEmbeddings("en")
+        _fasttext_doc_emb = DocumentPoolEmbeddings([_fasttext_emb])
+    return _fasttext_emb, _fasttext_doc_emb
+
+
+def get_vectors_list():
+    global _vectors_list_cache
+    if _vectors_list_cache is not None:
+        return _vectors_list_cache
+
+    _, doc_emb = get_fasttext_embeddings()
+
+    vectors = {}
+    for key in entities_list.keys():
+        vectors[key] = {}
+        for word in entities_list[key]:
+            sent = Sentence(word)
+            doc_emb.embed(sent)
+            vectors[key][word] = sent.embedding.to("cpu")
+
+    _vectors_list_cache = vectors
+    return _vectors_list_cache
 
 
 def get_synonyms(word: str, pos: str = None, only_hyponyms: bool = False) -> List[str]:
