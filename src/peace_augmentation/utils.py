@@ -175,18 +175,16 @@ _vectors_list_cache = None
 
 def ensure_nltk():
     """Ensure required NLTK resources are available."""
-    required = [
-        "punkt",
-        "wordnet",
-        "stopwords",
-        "averaged_perceptron_tagger",
-    ]
+    required = {
+        "punkt": "tokenizers/punkt",
+        "wordnet": "corpora/wordnet.zip",
+        "stopwords": "corpora/stopwords",
+        "averaged_perceptron_tagger": "taggers/averaged_perceptron_tagger",
+    }
 
-    for pkg in required:
+    for pkg, location in required.items():
         try:
-            nltk.data.find(f"tokenizers/{pkg}") if pkg == "punkt" else nltk.data.find(
-                f"corpora/{pkg}"
-            )
+            nltk.data.find(location)
         except LookupError:
             nltk.download(pkg)
 

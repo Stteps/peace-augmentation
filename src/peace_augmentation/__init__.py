@@ -22,7 +22,8 @@ from .utils import (
     get_fasttext_embeddings,
     get_ner_tagger,
     get_pos_tagger,
-    get_vectors_list
+    get_vectors_list,
+    ensure_nltk
 )
 
 class Augmentation:
@@ -150,6 +151,7 @@ class Augmentation:
         # synonyms and hyponyms are obtained with this last library following the
         # directions of https://hal.archives-ouvertes.fr/hal-02933266, this method
         # might be refactored to use only one POS notation.
+        ensure_nltk()
         tokens = nltk.word_tokenize(sent)
         tags = nltk.pos_tag(tokens)
 
@@ -266,6 +268,7 @@ class Augmentation:
 
         # Lower and tokenize sentence.
         sent = sent.lower()
+        ensure_nltk()
         tokens = nltk.word_tokenize(sent)
 
         # Filter out ocurrences of in-domain expressions.
