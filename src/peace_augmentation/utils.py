@@ -260,7 +260,8 @@ def get_synonyms(word: str, pos: str = None, only_hyponyms: bool = False) -> Lis
 
     # Possible values for `pos`
     pos_types = ["n", "a", "s", "r", "v"]
-
+    
+    ensure_nltk()
     for syn in wordnet.synsets(word):
         # If pos is None this if is always true and includes all the candidates
         # returned by wordnet. Otherwise, it checks pos types.
